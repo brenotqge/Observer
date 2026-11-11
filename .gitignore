@@ -3,3 +3,4 @@
 bench/data/
 .env
 bench/bin/
+bench/results/err.tmp

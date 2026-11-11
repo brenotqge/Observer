@@ -1,0 +1,3 @@
+# Scripts e configs rodam em containers Linux: manter LF em qualquer checkout.
+* text=auto eol=lf
+*.bin binary
