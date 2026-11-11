@@ -1,0 +1,1 @@
+{"lang":"python","version":"3.13.18","workers":1,"events":1000000,"elapsed_s":6.73,"events_per_s":148596,"cpu_user_s":6.656,"cpu_sys_s":0.084,"max_rss_kb":12032}

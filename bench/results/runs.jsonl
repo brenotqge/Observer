@@ -1,0 +1,15 @@
+{"cpu_sys_s":0.085,"cpu_user_s":2.292,"elapsed_s":2.328,"events":1000000,"events_per_s":429589,"lang":"go","max_rss_kb":8144,"version":"go1.25.14","workers":1}
+{"cpu_sys_s":0.187,"cpu_user_s":2.684,"elapsed_s":0.688,"events":1000000,"events_per_s":1453570,"lang":"go","max_rss_kb":14640,"version":"go1.25.14","workers":4}
+{"lang":"python","version":"3.13.18","workers":1,"events":1000000,"elapsed_s":7.022,"events_per_s":142407,"cpu_user_s":6.928,"cpu_sys_s":0.119,"max_rss_kb":15356}
+{"cpu_sys_s":0.052,"cpu_user_s":2.303,"elapsed_s":2.309,"events":1000000,"events_per_s":433174,"lang":"go","max_rss_kb":7808,"version":"go1.25.14","workers":1}
+{"cpu_sys_s":0.15,"cpu_user_s":2.776,"elapsed_s":0.693,"events":1000000,"events_per_s":1443513,"lang":"go","max_rss_kb":14572,"version":"go1.25.14","workers":4}
+{"lang":"python","version":"3.13.18","workers":1,"events":1000000,"elapsed_s":6.813,"events_per_s":146772,"cpu_user_s":6.651,"cpu_sys_s":0.107,"max_rss_kb":12032}
+{"cpu_sys_s":0.104,"cpu_user_s":2.235,"elapsed_s":2.295,"events":1000000,"events_per_s":435655,"lang":"go","max_rss_kb":7880,"version":"go1.25.14","workers":1}
+{"cpu_sys_s":0.192,"cpu_user_s":2.631,"elapsed_s":0.668,"events":1000000,"events_per_s":1496704,"lang":"go","max_rss_kb":14388,"version":"go1.25.14","workers":4}
+{"lang":"python","version":"3.13.18","workers":1,"events":1000000,"elapsed_s":6.761,"events_per_s":147917,"cpu_user_s":6.634,"cpu_sys_s":0.071,"max_rss_kb":11904}
+{"cpu_sys_s":0.092,"cpu_user_s":2.26,"elapsed_s":2.308,"events":1000000,"events_per_s":433358,"lang":"go","max_rss_kb":7552,"version":"go1.25.14","workers":1}
+{"cpu_sys_s":0.189,"cpu_user_s":2.698,"elapsed_s":0.688,"events":1000000,"events_per_s":1453607,"lang":"go","max_rss_kb":14472,"version":"go1.25.14","workers":4}
+{"lang":"python","version":"3.13.18","workers":1,"events":1000000,"elapsed_s":6.615,"events_per_s":151178,"cpu_user_s":6.684,"cpu_sys_s":0.106,"max_rss_kb":11904}
+{"cpu_sys_s":0.065,"cpu_user_s":2.297,"elapsed_s":2.271,"events":1000000,"events_per_s":440383,"lang":"go","max_rss_kb":7888,"version":"go1.25.14","workers":1}
+{"cpu_sys_s":0.235,"cpu_user_s":2.701,"elapsed_s":0.686,"events":1000000,"events_per_s":1458603,"lang":"go","max_rss_kb":14340,"version":"go1.25.14","workers":4}
+{"lang":"python","version":"3.13.18","workers":1,"events":1000000,"elapsed_s":6.73,"events_per_s":148596,"cpu_user_s":6.656,"cpu_sys_s":0.084,"max_rss_kb":12032}

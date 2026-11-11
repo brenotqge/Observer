@@ -1,0 +1,8 @@
+cpu: AMD Ryzen 5 5500                               
+BenchmarkParse-12    	  605238	      2027 ns/op	     400 B/op	      15 allocs/op
+BenchmarkParse-12    	  576092	      2061 ns/op	     400 B/op	      15 allocs/op
+BenchmarkParse-12    	  578293	      1998 ns/op	     400 B/op	      15 allocs/op
+cpu: AMD Ryzen 5 5500                               
+BenchmarkAdd-12    	 6221306	       192.7 ns/op	      32 B/op	       2 allocs/op
+BenchmarkAdd-12    	 6327070	       189.9 ns/op	      32 B/op	       2 allocs/op
+BenchmarkAdd-12    	 6142300	       190.2 ns/op	      32 B/op	       2 allocs/op

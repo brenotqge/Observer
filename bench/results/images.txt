@@ -1,0 +1,5 @@
+gonginx-observer/observer:dev 15886427
+gonginx-bench/python-equivalent:dev 176211524
+python:3.13-slim 176197571
+golang:1.25-bookworm 1190487481
+gcr.io/distroless/static-debian12:nonroot 6177006

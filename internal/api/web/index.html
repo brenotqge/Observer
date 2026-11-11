@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GoNginx Observer</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:,">
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1>GoNginx Observer</h1>
+    <p class="sub">Observabilidade em tempo real para NGINX Open Source · serviço em Go</p>
+  </div>
+  <div class="conn" id="conn" role="status"><span class="dot"></span><span id="conn-text">conectando…</span></div>
+</header>
+
+<main>
+  <section class="tiles" aria-label="Indicadores principais">
+    <article class="tile">
+      <h2>Requisições (total)</h2>
+      <p class="big" id="k-total">—</p>
+      <p class="hint" id="k-total-hint">desde a inicialização</p>
+    </article>
+    <article class="tile">
+      <h2>Requisições/s</h2>
+      <p class="big" id="k-rps">—</p>
+      <p class="hint" id="k-rps-hint">média da janela de 60 s</p>
+    </article>
+    <article class="tile">
+      <h2>Taxa de erros</h2>
+      <p class="big" id="k-err">—</p>
+      <p class="hint" id="k-err-hint">4xx + 5xx na janela</p>
+    </article>
+    <article class="tile">
+      <h2>Tempo médio de resposta</h2>
+      <p class="big" id="k-lat">—</p>
+      <p class="hint" id="k-lat-hint">janela de 60 s</p>
+    </article>
+    <article class="tile">
+      <h2>Dados enviados</h2>
+      <p class="big" id="k-bytes">—</p>
+      <p class="hint">desde a inicialização</p>
+    </article>
+  </section>
+
+  <section class="card wide">
+    <div class="card-head">
+      <h2>Tráfego — últimos 60 segundos</h2>
+      <ul class="legend" aria-label="Legenda">
+        <li><span class="sw s-ok"></span>2xx/3xx</li>
+        <li><span class="sw s-4xx"></span>4xx</li>
+        <li><span class="sw s-5xx"></span>5xx</li>
+      </ul>
+    </div>
+    <div class="chart" id="history" role="img" aria-label="Requisições por segundo nos últimos 60 segundos"></div>
+    <div class="tooltip" id="tip" hidden></div>
+  </section>
+
+  <section class="card">
+    <h2>Status HTTP <span class="muted">(acumulado)</span></h2>
+    <div id="classes" class="bars"></div>
+    <table class="codes" aria-label="Contagem por código HTTP">
+      <thead><tr><th>Código</th><th>Requisições</th></tr></thead>
+      <tbody id="codes"></tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2>Endpoints mais acessados</h2>
+    <div id="endpoints" class="bars"></div>
+  </section>
+
+  <section class="card">
+    <h2>IPs mais ativos <span class="muted" id="mask"></span></h2>
+    <div id="ips" class="bars"></div>
+  </section>
+
+  <section class="card wide">
+    <div class="card-head">
+      <h2>Alertas recentes <span class="muted" id="alerts-total"></span></h2>
+      <p class="muted small">Indicadores heurísticos — podem ser falsos positivos. Nenhuma ação automática é tomada.</p>
+    </div>
+    <ul id="alerts" class="alerts"></ul>
+  </section>
+
+  <section class="card wide pipeline">
+    <h2>Pipeline Go <span class="muted">(goroutines + channels)</span></h2>
+    <dl id="pipe" class="pipe"></dl>
+  </section>
+</main>
+
+<footer>Dados mantidos apenas em memória · reiniciar o serviço zera as métricas · atualização a cada 1 s</footer>
+<script src="app.js"></script>
+</body>
+</html>

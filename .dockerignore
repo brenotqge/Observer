@@ -1,0 +1,8 @@
+.git
+**/*.md
+bench/data
+bench/results
+nginx
+docs
+scripts
+*.exe

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GoNginx Observer — site de demonstração</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 3rem auto; padding: 0 1rem; line-height: 1.5; color: #1d2433; }
+  code { background: #eef1f6; padding: .1rem .3rem; border-radius: 4px; }
+  li { margin: .3rem 0; }
+</style>
+</head>
+<body>
+<h1>Site de demonstração</h1>
+<p>Este é o NGINX Open Source servindo tráfego observado pelo <strong>GoNginx Observer</strong>.</p>
+<ul>
+  <li><a href="/api/items"><code>/api/items</code></a> — 200 (JSON)</li>
+  <li><a href="/slow"><code>/slow</code></a> — 200 lento (~0,25 s)</li>
+  <li><a href="/missing"><code>/missing</code></a> — 404</li>
+  <li><a href="/error"><code>/error</code></a> — 500</li>
+</ul>
+<p>Dashboard: <a href="http://localhost:8080/">http://localhost:8080/</a></p>
+</body>
+</html>

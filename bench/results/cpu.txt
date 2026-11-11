@@ -1,0 +1,2 @@
+CPU(s):                               12
+Model name:                           AMD Ryzen 5 5500

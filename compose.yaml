@@ -1,0 +1,78 @@
+# GoNginx Observer — execução completa com:  docker compose up --build
+#
+# Serviços permanentes: nginx (servidor web + gerador de logs) e observer (Go).
+# Serviço auxiliar (sob demanda): loadgen — docker compose run --rm loadgen ...
+
+name: gonginx-observer
+
+services:
+  nginx:
+    build:
+      context: ./nginx
+    image: gonginx-observer/nginx:dev
+    restart: unless-stopped
+    ports:
+      # Publicado somente em localhost.
+      - "127.0.0.1:${NGINX_PORT:-8081}:80"
+    volumes:
+      - nginx-logs:/var/log/observer          # escrita (log JSON Lines)
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  observer:
+    build:
+      context: .
+      target: observer
+    image: gonginx-observer/observer:dev
+    restart: unless-stopped
+    depends_on:
+      nginx:
+        condition: service_started
+    ports:
+      # API + dashboard, publicados somente em localhost (sem autenticação).
+      - "127.0.0.1:${OBSERVER_PORT:-8080}:8080"
+    volumes:
+      - nginx-logs:/logs:ro                   # somente leitura
+    environment:
+      OBSERVER_LISTEN_ADDR: ":8080"
+      OBSERVER_LOG_PATH: /logs/access.jsonl
+      OBSERVER_WORKERS: ${OBSERVER_WORKERS:-4}
+      OBSERVER_ALERT_IP_THRESHOLD: ${OBSERVER_ALERT_IP_THRESHOLD:-300}
+      OBSERVER_ALERT_5XX_RATE: ${OBSERVER_ALERT_5XX_RATE:-0.20}
+      OBSERVER_ALERT_MIN_SAMPLES: ${OBSERVER_ALERT_MIN_SAMPLES:-50}
+      # A demonstração usa IPs fictícios (TEST-NET), por isso exibimos o IP
+      # completo. Para logs reais use "partial" (padrão do binário).
+      OBSERVER_MASK_IPS: ${OBSERVER_MASK_IPS:-none}
+      OBSERVER_LOG_LEVEL: ${OBSERVER_LOG_LEVEL:-info}
+    stop_grace_period: 10s
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+
+  # Gerador de tráfego opcional (não fica em execução).
+  #   docker compose run --rm loadgen -scenario normal -n 2000
+  loadgen:
+    build:
+      context: .
+      target: loadgen
+    image: gonginx-observer/loadgen:dev
+    profiles: ["tools"]
+    depends_on:
+      - nginx
+    environment:
+      # Destino padrão dentro da rede do Compose (argumentos de
+      # "docker compose run" substituem o command, não esta variável).
+      LOADGEN_URL: http://nginx
+    command: ["-scenario", "normal"]
+
+volumes:
+  nginx-logs:
