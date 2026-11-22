@@ -78,6 +78,36 @@ func TestAggregation(t *testing.T) {
 	}
 }
 
+func TestAllHistoryKeepsFullProcessPeriod(t *testing.T) {
+	clk := newClock()
+	s := New(Config{Now: clk.Now})
+	now := clk.Now()
+	s.Add(ev(now, "192.0.2.1", "/", 200, 100, time.Millisecond))
+	clk.Advance(20 * time.Second)
+	s.Add(ev(clk.Now(), "192.0.2.2", "/error", 500, 100, time.Millisecond))
+
+	snapshot := s.Snapshot()
+	if len(snapshot.AllHistory) != 2 {
+		t.Fatalf("histórico completo: got %d pontos, quer 2", len(snapshot.AllHistory))
+	}
+	if snapshot.AllHistory[0].Requests != 1 || snapshot.AllHistory[1].Requests != 1 {
+		t.Errorf("histórico completo: %+v", snapshot.AllHistory)
+	}
+}
+
+func TestEndpointIncludesServerPort(t *testing.T) {
+	clk := newClock()
+	s := New(Config{Now: clk.Now})
+	event := ev(clk.Now(), "192.0.2.1", "/api", 200, 100, time.Millisecond)
+	event.ServerPort = 8083
+	s.Add(event)
+
+	top := s.TopEndpoints(10)
+	if len(top) != 1 || top[0] != (Counter{"8083 · GET /api", 1}) {
+		t.Errorf("top endpoints: %+v", top)
+	}
+}
+
 func TestSlidingWindow(t *testing.T) {
 	clk := newClock()
 	s := New(Config{Now: clk.Now, WindowSeconds: 60})

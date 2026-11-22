@@ -9,9 +9,10 @@ O sistema tem dois serviços permanentes e um auxiliar:
 | `nginx`    | `nginx:1.28-alpine` + config   | servidor web; escreve `access.jsonl` no volume `nginx-logs` |
 | `observer` | Go estático em `distroless/static` (15,9 MB) | lê o log (volume **somente leitura**), agrega, alerta, serve API/dashboard |
 | `loadgen`  | Go estático (profile `tools`)  | gerador de tráfego sob demanda; não fica em execução |
+| sites 1–4  | HTML estático servido pelo NGINX | páginas independentes e botão de carga contínua por 30 s |
 
 ```
-                        HTTP (127.0.0.1:8081)
+                   HTTP (127.0.0.1:8081–8084)
  Clientes / loadgen ─────────────────────────▶ ┌────────────────────┐
    (X-Forwarded-For com IPs TEST-NET)          │  NGINX Open Source │
                                                │  log_format JSON   │

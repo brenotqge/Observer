@@ -7,6 +7,14 @@ const $ = (id) => document.getElementById(id);
 const nf = new Intl.NumberFormat("pt-BR");
 const nf1 = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1, minimumFractionDigits: 1 });
 const SVG = "http://www.w3.org/2000/svg";
+const state = {
+  mode: "beginner",
+  search: "",
+  searchScope: "all",
+  port: "all",
+  status: "all",
+  period: "window",
+};
 
 function el(tag, attrs = {}, text) {
   const e = document.createElement(tag);
@@ -31,13 +39,29 @@ const fmtMs = (ms) => (ms >= 1000 ? nf1.format(ms / 1000) + " s" : nf1.format(ms
 // ---------------------------------------------------------------------------
 function renderTiles(m) {
   $("k-total").textContent = nf.format(m.cumulative.total_requests);
-  $("k-rps").textContent = nf1.format(m.window.requests_per_second);
-  $("k-rps-hint").textContent = `${nf.format(m.window.requests)} req nos últimos ${m.window.seconds} s`;
-  $("k-err").textContent = pct(m.window.error_rate);
-  $("k-err-hint").textContent = `4xx+5xx na janela · 5xx: ${pct(m.window.server_error_rate)}`;
-  $("k-lat").textContent = fmtMs(m.window.avg_response_ms);
-  $("k-lat-hint").textContent = `janela de 60 s · acumulado ${fmtMs(m.cumulative.avg_response_ms)}`;
+  if (state.period === "cumulative") {
+    $("k-rps").textContent = nf.format(m.cumulative.total_requests);
+    $("k-rps-hint").textContent = "acessos em todo o período";
+    $("k-err").textContent = pct(m.cumulative.error_rate);
+    $("k-err-hint").textContent = "acessos com resposta diferente de sucesso";
+    $("k-lat").textContent = fmtMs(m.cumulative.avg_response_ms);
+    $("k-lat-hint").textContent = "tempo médio em todo o período";
+  } else {
+    $("k-rps").textContent = nf1.format(m.window.requests_per_second);
+    $("k-rps-hint").textContent = `${nf.format(m.window.requests)} acessos nos últimos ${m.window.seconds} s`;
+    $("k-err").textContent = pct(m.window.error_rate);
+    $("k-err-hint").textContent = "acessos que não tiveram uma resposta de sucesso";
+    $("k-lat").textContent = fmtMs(m.window.avg_response_ms);
+    $("k-lat-hint").textContent = `janela de 60 s · acumulado ${fmtMs(m.cumulative.avg_response_ms)}`;
+  }
   $("k-bytes").textContent = fmtBytes(m.cumulative.bytes_sent);
+  const problemRate = state.period === "cumulative" ? m.cumulative.error_rate : m.window.error_rate;
+  const situation = problemRate >= 0.20
+    ? "Há muitos acessos com problema. Vale verificar as páginas e os alertas."
+    : problemRate > 0
+      ? "Alguns acessos tiveram problema, mas a maior parte funcionou normalmente."
+      : "Os acessos estão funcionando normalmente.";
+  $("simple-summary").textContent = `${situation} Foram registrados ${nf.format(m.cumulative.total_requests)} acessos desde o início.`;
 }
 
 // Gráfico de barras empilhadas (por segundo): 2xx/3xx, 4xx, 5xx.
@@ -80,7 +104,11 @@ function renderHistory(hist) {
   const ago = (i) => n - 1 - i;
   for (const i of [0, Math.floor(n / 2), n - 1]) {
     const t = svg("text", { class: "axis", x: padL + i * slot + slot / 2, y: H - 4, "text-anchor": i === 0 ? "start" : i === n - 1 ? "end" : "middle" });
-    t.textContent = ago(i) === 0 ? "agora" : `-${ago(i)} s`;
+    if (state.period === "cumulative") {
+      t.textContent = new Date(hist[i].t * 1000).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    } else {
+      t.textContent = ago(i) === 0 ? "agora" : `-${ago(i)} s`;
+    }
     s.append(t);
   }
   box.replaceChildren(s);
@@ -96,7 +124,7 @@ function showTip(e, p) {
   const t = new Date(p.t * 1000).toLocaleTimeString("pt-BR");
   tip.replaceChildren(
     el("strong", {}, t), el("br"),
-    document.createTextNode(`${nf.format(p.requests)} req · 4xx ${nf.format(p.errors_4xx)} · 5xx ${nf.format(p.errors_5xx)}`),
+    document.createTextNode(`${nf.format(p.requests)} acessos · problemas: ${nf.format(p.errors_4xx + p.errors_5xx)}`),
   );
   tip.hidden = false;
   const x = Math.min(e.clientX - card.left + 12, card.width - tip.offsetWidth - 8);
@@ -126,10 +154,24 @@ function renderBars(container, items, { cls, emptyText = "Sem dados ainda." } = 
 
 function renderStatus(sc) {
   const total = Object.values(sc.classes).reduce((a, b) => a + b, 0);
-  const items = ["2xx", "3xx", "4xx", "5xx"].map((k) => ({ key: k, count: sc.classes[k] }));
-  if (sc.classes["1xx"]) items.unshift({ key: "1xx", count: sc.classes["1xx"] });
+  const classes = state.status === "all"
+    ? ["2xx", "3xx", "4xx", "5xx"]
+    : [state.status];
+  const items = classes.map((k) => ({ key: k, count: sc.classes[k] }));
+  if (state.status === "all" && sc.classes["1xx"]) items.unshift({ key: "1xx", count: sc.classes["1xx"] });
+  if (state.status !== "all") {
+    items.splice(0, items.length,
+      ...classes.map((k) => ({ key: k, count: sc.classes[k] })).filter((it) => it.count));
+  }
   renderBars($("classes"), total ? items : [], { cls: (it) => "c-" + it.key });
-  $("codes").replaceChildren(...sc.codes.map((c) => {
+  const search = state.search.trim();
+  const codes = sc.codes.filter((c) =>
+    state.status === "all" || String(c.code).startsWith(state.status[0])
+  ).filter((c) =>
+    (state.searchScope !== "ips" && state.searchScope !== "alerts")
+    && (!search || String(c.code).includes(search))
+  );
+  $("codes").replaceChildren(...codes.map((c) => {
     const tr = el("tr");
     tr.append(el("td", {}, String(c.code)), el("td", {}, nf.format(c.count)));
     return tr;
@@ -139,13 +181,19 @@ function renderStatus(sc) {
 function renderAlerts(a) {
   $("alerts-total").textContent = `(${nf.format(a.total)} desde a inicialização)`;
   const list = $("alerts");
-  if (!a.items.length) {
+  const search = state.search.trim().toLowerCase();
+  const items = a.items.filter((it) => {
+    if (state.searchScope === "pages" || state.searchScope === "ips") return false;
+    if (!search) return true;
+    return [it.type, it.entity, it.description].join(" ").toLowerCase().includes(search);
+  });
+  if (!items.length) {
     list.replaceChildren(el("li", { class: "empty" }, "Nenhum alerta. Regras: > " +
       nf.format(a.rules.ip_request_threshold) + " req por IP em 60 s; 5xx > " +
       pct(a.rules.server_error_rate) + " com ≥ " + nf.format(a.rules.min_samples) + " amostras."));
     return;
   }
-  list.replaceChildren(...a.items.map((it) => {
+  list.replaceChildren(...items.map((it) => {
     const crit = it.type === "server_error_rate";
     const li = el("li", { class: "alert" + (crit ? " crit" : "") });
     const label = crit ? "⚠ Taxa de 5xx elevada" : "⚠ Volume elevado por IP";
@@ -190,19 +238,34 @@ async function getJSON(path) {
   return r.json();
 }
 
+let lastMetrics = null;
 let lastHistory = null;
 async function tick() {
   try {
     const [m, sc, ep, ips, al] = await Promise.all([
-      getJSON("api/v1/metrics"), getJSON("api/v1/status-codes"), getJSON("api/v1/top-endpoints?limit=8"),
-      getJSON("api/v1/top-ips?limit=8"), getJSON("api/v1/alerts?limit=20"),
+      getJSON("api/v1/metrics"), getJSON("api/v1/status-codes"), getJSON("api/v1/top-endpoints?limit=100"),
+      getJSON("api/v1/top-ips?limit=100"), getJSON("api/v1/alerts?limit=1000"),
     ]);
     renderTiles(m);
-    lastHistory = m.history;
-    renderHistory(m.history);
+    lastMetrics = m;
+    lastHistory = state.period === "cumulative" ? m.all_history : m.history;
+    renderHistory(lastHistory);
+    $("history-title").textContent = state.period === "cumulative"
+      ? "Acessos — todo o período"
+      : "Acessos — últimos 60 segundos";
     renderStatus(sc);
-    renderBars($("endpoints"), ep.items);
-    renderBars($("ips"), ips.items);
+    const search = state.search.trim().toLowerCase();
+    const endpoints = ep.items.filter((it) => {
+      if (state.searchScope === "ips" || state.searchScope === "alerts") return false;
+      if (state.port !== "all" && !it.key.startsWith(state.port + " ·")) return false;
+      return !search || it.key.toLowerCase().includes(search);
+    });
+    const ipItems = ips.items.filter((it) => {
+      if (state.searchScope === "pages" || state.searchScope === "alerts") return false;
+      return !search || it.key.toLowerCase().includes(search);
+    });
+    renderBars($("endpoints"), endpoints.slice(0, 20));
+    renderBars($("ips"), ipItems.slice(0, 20));
     $("mask").textContent = ips.mask === "partial" ? "(mascarados por prefixo)" : "";
     renderAlerts(al);
     renderPipeline(m);
@@ -217,4 +280,47 @@ async function tick() {
   }
 }
 window.addEventListener("resize", () => lastHistory && renderHistory(lastHistory));
+document.querySelectorAll(".mode").forEach((button) => {
+  button.addEventListener("click", () => {
+    state.mode = button.dataset.mode;
+    document.body.dataset.mode = state.mode;
+    document.querySelectorAll(".mode").forEach((item) => {
+      item.classList.toggle("active", item === button);
+    });
+  });
+});
+$("search").addEventListener("input", (event) => {
+  state.search = event.target.value;
+});
+$("search-scope").addEventListener("change", (event) => {
+  state.searchScope = event.target.value;
+});
+$("port-filter").addEventListener("change", (event) => {
+  state.port = event.target.value;
+});
+$("clear-search").addEventListener("click", () => {
+  state.search = "";
+  state.searchScope = "all";
+  state.port = "all";
+  state.status = "all";
+  $("search").value = "";
+  $("search-scope").value = "all";
+  $("port-filter").value = "all";
+  $("status-filter").value = "all";
+});
+$("status-filter").addEventListener("change", (event) => {
+  state.status = event.target.value;
+});
+$("period-filter").addEventListener("change", (event) => {
+  state.period = event.target.value;
+  if (lastMetrics) {
+    renderTiles(lastMetrics);
+    lastHistory = state.period === "cumulative" ? lastMetrics.all_history : lastMetrics.history;
+    renderHistory(lastHistory);
+    $("history-title").textContent = state.period === "cumulative"
+      ? "Acessos — todo o período"
+      : "Acessos — últimos 60 segundos";
+  }
+});
+document.body.dataset.mode = state.mode;
 tick();
