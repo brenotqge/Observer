@@ -22,6 +22,7 @@ type Event struct {
 	RemoteAddr  netip.Addr
 	Method      string
 	Path        string
+	ServerPort  int
 	Status      int
 	BytesSent   int64
 	RequestTime time.Duration
@@ -43,6 +44,7 @@ type rawEvent struct {
 	RemoteAddr  *string  `json:"remote_addr"`
 	Method      *string  `json:"method"`
 	URI         *string  `json:"uri"`
+	ServerPort  *int     `json:"server_port"`
 	Status      *int     `json:"status"`
 	BytesSent   *int64   `json:"bytes_sent"`
 	RequestTime *float64 `json:"request_time"`
@@ -106,10 +108,19 @@ func Parse(line []byte) (Event, error) {
 		RemoteAddr:  addr.Unmap(),
 		Method:      normalizeMethod(*r.Method),
 		Path:        normalizePath(*r.URI),
+		ServerPort:  pointerValue(r.ServerPort),
 		Status:      *r.Status,
 		BytesSent:   *r.BytesSent,
 		RequestTime: time.Duration(math.Round(rt * float64(time.Second))),
 	}, nil
+}
+
+func pointerValue[T any](p *T) T {
+	if p == nil {
+		var zero T
+		return zero
+	}
+	return *p
 }
 
 // normalizeMethod aceita apenas tokens curtos em maiúsculas. Requisições

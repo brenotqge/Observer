@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Site 4</title>
+  <link rel="stylesheet" href="/shared.css">
+</head>
+<body>
+  <main class="page">
+  <h1>Site 4</h1>
+  <p>Exemplo de site estático em uma porta independente.</p>
+  <div class="actions">
+    <a href="/api">Ver dados da API</a>
+    <a href="/slow">Resposta lenta</a>
+    <a href="/missing">Gerar 404</a>
+    <a href="/error">Gerar erro</a>
+  </div>
+  <button class="test-button" type="button" data-test-api="/api">Gerar testes deste site</button>
+  <p class="test-status" role="status" aria-live="polite"></p>
+  <p><a class="back" href="http://localhost:8080/">Abrir Observer</a></p>
+  </main>
+  <script src="/test.js"></script>
+</body>
+</html>

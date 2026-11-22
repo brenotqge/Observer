@@ -1,156 +1,265 @@
-# Roteiro de apresentação — GoNginx Observer
+# Roteiro de vídeo — GoNginx Observer
 
-Duração sugerida: **15–20 minutos** (12 de fala + 5–8 de demonstração).
+Duração máxima: 10 minutos.
 
-## Antes da aula (checklist)
+## Objetivo do vídeo
+
+Apresentar o problema, a escolha de Go, a arquitetura do projeto, a experiência
+dos usuários e uma demonstração prática. O roteiro combina explicação técnica
+com exemplos visuais, sem depender de conhecimento prévio.
+
+## 0:00–0:45 — Abertura
+
+Abrir o vídeo já no painel principal do Observer em
+`http://localhost:8080`.
+
+Fala sugerida:
+
+"Este projeto é um sistema de observabilidade para NGINX Open Source. Ele
+monitora acessos, erros e comportamentos fora do normal em quatro sites
+executados em portas diferentes. Hoje vamos ver por que usamos Go, para quem
+o projeto foi feito, como ele funciona e como demonstrar o sistema na prática."
+
+## 0:45–1:45 — Por que Go
+
+Mostrar brevemente `go.mod`, `internal/pipeline/pipeline.go` e
+`GO_VS_OTHER_LANGUAGES.md`.
+
+Pontos a falar:
+
+- Go foi criado no Google no final dos anos 2000 por Robert Griesemer, Rob Pike
+  e Ken Thompson. A primeira versão pública foi lançada em 2009.
+- O projeto usa Go 1.25.14. O projeto não usa bibliotecas externas no módulo.
+- A linguagem foi escolhida porque o problema exige um processo contínuo,
+  leitura concorrente de dados, baixa memória e implantação simples.
+- Goroutines permitem executar etapas em paralelo dentro do mesmo processo.
+  Channels organizam a comunicação entre os stages do pipeline.
+- O resultado também é um binário único. Isso facilita executar o Observer
+  como um sidecar junto do NGINX.
+- Em benchmark deste projeto, Go com 4 goroutines processou cerca de 1,45 milhão
+  de eventos por segundo, contra 147 mil por segundo com Python em uma rodada
+  sequencial. O ambiente, o hardware e a metodologia estão em
+  `GO_VS_OTHER_LANGUAGES.md`.
+
+Não transformar o vídeo em uma comparação absoluta. Explicar que Python seria
+ótimo para análise de dados e prototipagem, Node.js seria adequado para I/O e
+Java oferece ferramentas maduras para sistemas maiores. Para este problema
+pequeno e contínuo, Go teve a melhor combinação entre concorrência simples,
+baixo consumo e implantação.
+
+## 1:45–3:00 — Projeto e domínio
+
+Mostrar o diagrama de `README.md` e depois o arquivo
+`nginx/conf.d/default.conf`.
+
+Pontos a falar:
+
+- Premissa: o NGINX já registra acessos em um arquivo JSON Lines.
+- Premissa: o projeto não deve modificar o NGINX nem depender da edição comercial.
+- Usuários principais: administradores de servidores, equipes técnicas e
+  pessoas iniciantes que precisam entender rapidamente se os sites estão
+  funcionando.
+- Domínio de aplicação: monitoramento em tempo real de servidores web.
+- O sistema observa quantidades de acessos, respostas 2xx, 3xx, 4xx e 5xx,
+  páginas mais usadas, IPs ativos, latência e alertas.
+- Os dados ficam em memória e são reiniciados junto do Observer.
+- O acesso é restrito a `localhost`, portanto não exige autenticação nesta
+  demonstração acadêmica.
+
+## 3:00–4:00 — Arquitetura
+
+Mostrar uma visão geral dos diretórios e explicar o fluxo em uma frase:
+
+"O NGINX recebe a requisição, escreve uma linha no arquivo de log, o Tailer lê
+a linha, os parsers validam em paralelo, o agregador conta os dados e a API
+entrega o resultado ao dashboard."
+
+Mostrar estes elementos:
+
+- `nginx/conf.d/default.conf`: quatro portas e formatos de resposta.
+- `internal/tailer`: leitura contínua.
+- `internal/logparse`: validação.
+- `internal/pipeline`: goroutines e channels.
+- `internal/metrics`: contadores e histórico.
+- `internal/api`: API REST e dashboard.
+- `compose.yaml`: publicação dos containers e volume compartilhado.
+
+Explicar backpressure de forma simples: se o processamento ficar lento, as
+filas esperam em vez de perder eventos. O arquivo de log funciona como buffer
+durável.
+
+## 4:00–5:15 — Interface para usuários leigos
+
+No `http://localhost:8080`, selecionar o modo leigo.
+
+Explicar:
+
+- "Acessos" substitui o termo requisições para facilitar a leitura.
+- "Páginas com problema" representa erros HTTP.
+- "Tempo de espera" representa a latência média.
+- "Como está o site?" oferece uma leitura textual da situação.
+- A opção "Todo o período" mostra todo o histórico armazenado, não só os
+  últimos 60 segundos.
+
+Mostrar:
+
+1. Alterar o período.
+2. Usar o filtro de porta.
+3. Buscar por `8082`, `/api` ou uma resposta específica.
+4. Limpar todos os filtros.
+
+## 5:15–6:30 — Interface avançada
+
+Alternar para o modo avançado.
+
+Mostrar:
+
+- distribuição de status HTTP;
+- endpoints mais acessados;
+- IPs mais ativos;
+- alertas recentes;
+- goroutines;
+- filas brutas e de eventos;
+- linhas lidas, inválidas e agregadas;
+- memória e versão do runtime.
+
+Explicar que os dados técnicos ajudam uma equipe a investigar gargalos e
+comportamentos inesperados. Os alertas são heurísticos e podem indicar pico
+de um usuário, crawler ou teste de carga.
+
+## 6:30–8:00 — Demonstração prática principal
+
+Abrir uma das páginas, de preferência `http://localhost:8082`.
+
+Demonstrar nesta ordem:
+
+1. Mostrar que a página tem os links para `/api`, `/slow`, `/missing` e
+   `/error`.
+2. Abrir o botão **Gerar testes deste site**.
+3. Clicar uma vez e explicar que o navegador vai fazer tráfego misto por
+   30 segundos.
+4. Voltar ao Observer em `http://localhost:8080`.
+5. Deixar o gráfico de acessos, os indicadores e os alertas atualizarem.
+6. Usar o filtro da porta 8082 para separar esse teste dos demais.
+7. Voltar ao site e aguardar o resumo final de sucessos e problemas.
+
+O teste gera respostas normais, lentas, inexistentes e de erro. Ele existe
+para tornar a demonstração evidente sem exigir terminal ou conhecimento de
+códigos HTTP.
+
+## 8:00–9:00 — Demonstração técnica adicional
+
+Mostrar uma segunda evidência prática:
 
 ```bash
-docker compose build
+docker compose exec nginx tail -n 5 /var/log/observer/access.jsonl
 ```
+
+Explicar que cada linha contém porta, IP, método, caminho, status, bytes e
+tempo de resposta.
+
+Mostrar a API:
 
 ```bash
-docker compose --profile tools build loadgen
+curl -s http://localhost:8080/api/v1/metrics
 ```
+
+Destacar a separação entre métricas acumuladas, métricas da janela de 60
+segundos e histórico completo.
+
+Opcional, caso haja tempo:
 
 ```bash
-docker compose up -d
+docker compose run --rm loadgen -scenario spike -n 400
 ```
 
-- Abrir http://localhost:8080 (dashboard) e http://localhost:8081 (site).
-- Deixar um terminal com fonte grande, já na pasta do projeto.
-- Plano B sem internet: as imagens ficam em cache local após o build.
-- Plano C: capturas de tela do dashboard e o relatório `bench/results/RESULTS.md`.
+Esse cenário concentra requisições em um IP e pode disparar uma regra de alerta.
 
-## 1. Abertura (1 min)
+## 9:00–9:45 — Qualidade e exemplos
 
-"Como saber, **agora**, quantas requisições meu servidor web está recebendo,
-quantas estão falhando e se algum cliente está fazendo algo fora do normal?"
+Mostrar rapidamente:
 
-## 2. O que é o NGINX (2 min)
+- testes unitários;
+- testes de concorrência;
+- race detector;
+- fuzzing do parser;
+- teste de integração com Docker Compose;
+- benchmark com Go e Python;
+- desligamento gracioso;
+- limitação de memória;
+- contagem exata dos eventos.
 
-- Servidor HTTP, *reverse proxy* e balanceador; um dos servidores web mais usados.
-- Arquitetura orientada a eventos (poucos processos, milhares de conexões).
-- Duas edições: **Open Source** (licença BSD-2) e **NGINX Plus** (comercial),
-  que inclui dashboard em tempo real e API de métricas.
+Fala sugerida:
 
-## 3. Problema identificado (1,5 min)
+"A qualidade não depende apenas da aparência. O projeto testa a concorrência,
+erros de entrada, limites de memória, integração dos containers e o encerramento
+correto dos processos."
 
-- O NGINX Open Source escreve logs, mas não oferece painel, rankings ou alertas.
-- `stub_status` só mostra contadores de conexão.
-- Objetivo: criar essa camada **sem modificar o NGINX** e **sem usar o Plus**.
+## 9:45–10:00 — Fechamento
 
-## 4. Solução desenvolvida (3 min)
+Fala sugerida:
 
-Mostrar o diagrama do [README](README.md#arquitetura).
+"O projeto combina NGINX, Go e Docker para entregar observabilidade no mesmo
+ambiente da aplicação. O sistema funciona para iniciantes porque apresenta
+acessos e problemas em linguagem simples. Também atende equipes técnicas por
+meio de filtros, APIs e detalhes do pipeline. Go foi uma escolha adequada
+porque a aplicação é concorrente, contínua, pequena e distribuída como
+container."
 
-- NGINX escreve **JSON Lines** em um volume compartilhado.
-- Observer (Go) monta o volume **somente leitura** — padrão **sidecar**.
-- Pipeline: Tailer → channel → pool de parsers → channel → agregador.
-- API REST + dashboard embutidos no mesmo binário.
-- Dois serviços no Docker Compose, um comando para subir tudo.
+## Roteiro rápido de demonstração
 
-## 5. Por que Go (3 min)
+Usar este fluxo quando o tempo estiver curto:
 
-Abrir `internal/pipeline/pipeline.go` e mostrar ~20 linhas:
+1. Abrir `http://localhost:8082` e clicar em **Gerar testes deste site**.
+2. Abrir `http://localhost:8080`.
+3. Mostrar o modo leigo e o gráfico avançando.
+4. Selecionar a porta 8082 no filtro.
+5. Alternar para o modo avançado.
+6. Mostrar status, endpoints, filas e alertas.
+7. Executar o comando do log bruto ou mostrar a API.
+8. Encerrar explicando por que Go foi escolhido.
 
-- **goroutines**: `workers.Go(p.parseWorker)` — um pool fixo, não ilimitado.
-- **channels com capacidade limitada**: `make(chan []byte, 1024)`.
-- **quem envia fecha**: `defer close(p.raw)`; `workers.Wait(); close(p.events)`.
-- **`context.Context`**: o mesmo sinal desliga todas as goroutines.
-- **Backpressure**: fila cheia → o leitor espera; o arquivo é o buffer.
+## Checklist de qualidade do vídeo
 
-Números do projeto (ver [GO_VS_OTHER_LANGUAGES.md](GO_VS_OTHER_LANGUAGES.md)):
+### Preparação
 
-- Imagem do Observer: **15,9 MB** contra **176 MB** de um equivalente Python.
-- Memória em execução: **~7–9 MiB**.
-- Benchmark de parsing: Go **2,9×** (1 núcleo) e **9,8×** (4 goroutines) mais
-  rápido que Python — e onde o Python foi melhor (memória vs. Go paralelo).
+- Reiniciar o Compose antes da gravação:
 
-## 6. Demonstração prática (6–8 min)
+  ```bash
+  docker compose down
+  docker compose up -d --build
+  ```
 
-1. **Dashboard vazio** — http://localhost:8080. "A API responde mesmo sem dados."
-2. **Tráfego normal** (mostra req/s, status, endpoints, IPs, histórico):
+- Confirmar que todas as portas respondem:
 
-   ```bash
-   docker compose run --rm loadgen -scenario normal -n 3000 -c 10 -rate 100
-   ```
+  ```bash
+  curl -I http://localhost:8081
+  curl -I http://localhost:8082
+  curl -I http://localhost:8083
+  curl -I http://localhost:8084
+  curl -I http://localhost:8080/healthz
+  ```
 
-3. **Ver o log bruto** que o NGINX está escrevendo:
+- Manter o terminal em fonte grande.
+- Abrir o Observer e os sites em abas separadas antes de iniciar.
+- Fechar notificações e aplicações que possam aparecer na tela.
 
-   ```bash
-   docker compose exec nginx tail -n 3 /var/log/observer/access.jsonl
-   ```
+### Gravação
 
-4. **Regra A — pico de um IP** (alerta "Volume elevado por IP"):
+- Mostrar o ponteiro ou destacar elementos antes de clicar.
+- Evitar deixar espera sem explicação.
+- Usar áudio claro e pausas curtas.
+- Mostrar o nome completo da linguagem e o motivo da escolha.
+- Mostrar o projeto funcionando antes de aprofundar o código.
+- Usar zoom ou resolução alta para códigos e filtros serem legíveis.
+- Não apresentar detalhes internos sem explicar o valor para o usuário.
 
-   ```bash
-   docker compose run --rm loadgen -scenario spike -n 400
-   ```
+### Qualidade
 
-5. **Regra B — onda de erros 500** (alerta "Taxa de 5xx elevada"):
-
-   ```bash
-   docker compose run --rm loadgen -scenario errors -n 1500
-   ```
-
-6. **API diretamente**:
-
-   ```bash
-   curl -s http://localhost:8080/api/v1/alerts
-   ```
-
-7. **Concorrência visível**: no card "Pipeline Go", mostrar goroutines,
-   filas (len/cap), linhas lidas = eventos agregados.
-8. **Desligamento gracioso**:
-
-   ```bash
-   docker compose stop observer
-   ```
-
-   ```bash
-   docker compose logs observer --tail 5
-   ```
-
-   Mostrar "pipeline encerrado", "desligamento concluído", código 0.
-
-Enfatizar: "alertas são **indicadores heurísticos** — um pico pode ser um
-crawler legítimo; por isso não bloqueamos nada automaticamente."
-
-## 7. Qualidade (1 min)
-
-- Testes de unidade, concorrência (`-race`), fuzzing do parser, HTTP,
-  desligamento e um log **real** do NGINX.
-- Teste de integração com Compose: `./scripts/integration-test.sh` (18 verificações).
-
-## 8. Aplicações futuras (1,5 min)
-
-- Exportar métricas para Prometheus/Grafana; alertas via Alertmanager/webhooks.
-- Rodar como sidecar em Kubernetes (`emptyDir` compartilhado).
-- Percentis de latência (p95/p99), métricas por *upstream*, detecção estatística
-  (média móvel/desvio), geolocalização com bases locais.
-- Agregação central de várias instâncias (fila + agregador).
-
-## 9. Custos operacionais (1 min)
-
-- Um sidecar por servidor: ~16 MB de imagem, < 10 MiB de RAM, CPU ≈ 0 em repouso.
-- Zero dependências externas → sem atualizações de bibliotecas de terceiros.
-- Sem banco de dados → nada para provisionar, mas também sem histórico.
-
-## 10. Limitações e conclusões (1,5 min)
-
-- Métricas em memória (reinício zera); uma única instância; latência ≈ 250 ms.
-- Sem autenticação (portas apenas em localhost).
-- Go não é universalmente superior: o JSON do Python é em C, o Python usou
-  menos memória que o Go paralelo, e a inicialização vazia empatou.
-- **Conclusão**: para um serviço de infraestrutura pequeno, concorrente e de
-  longa duração, Go entregou simplicidade de deploy, baixo consumo e
-  concorrência fácil de explicar — exatamente o que o problema pedia.
-
-## Perguntas prováveis
-
-- *Por que não ler os logs pelo stdout do container?* Exigiria acesso à API do
-  Docker (socket montado = risco de segurança) e misturaria logs.
-- *E se o Observer cair?* O NGINX não é afetado; as métricas recomeçam.
-- *Perde eventos sob carga?* Não: backpressure, o arquivo segura a fila.
-- *Por que não fsnotify?* Só biblioteca padrão; eventos de FS são pouco
-  confiáveis em volumes do Docker Desktop. Polling de 250 ms basta.
+- Gravar em pelo menos 1080p.
+- Usar 30 frames por segundo.
+- Cortar pausas longas, erros de carregamento e repetições.
+- Manter uma única linguagem visual entre a apresentação e o vídeo.
+- Revisar as legendas e corrigir termos em inglês:
+  goroutines, channels, backpressure, sidecar e tailer.
+- Terminar com o fechamento e não deixar o teste continuar fora de contexto.

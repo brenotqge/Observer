@@ -1,5 +1,33 @@
 # GoNginx Observer
 
+Painel acadêmico para observar acessos, erros e alertas de quatro sites
+executados em portas separadas com NGINX Open Source.
+
+## Demonstração rápida
+
+1. Inicie os serviços: `docker compose up --build`
+2. Abra o Observer: http://localhost:8080
+3. Acesse um dos quatro sites: http://localhost:8081 a http://localhost:8084
+4. Clique em **Gerar testes deste site** em qualquer página
+5. Observe o resultado por 30 segundos no modo leigo ou avançado do Observer
+
+O modo leigo usa palavras simples como “acessos” e “páginas com problema”.
+O modo avançado mostra status HTTP, IPs, filas, goroutines e detalhes técnicos.
+
+## Links principais
+
+| Recurso | Endereço | Finalidade |
+|---|---|---|
+| Observer | http://localhost:8080 | Dashboard, busca, filtros e API |
+| Site 1 | http://localhost:8081 | Página principal e endpoints básicos |
+| Site 2 | http://localhost:8082 | Página independente com `/api`, `/slow` e `/error` |
+| Site 3 | http://localhost:8083 | Página independente com `/api`, `/slow` e `/error` |
+| Site 4 | http://localhost:8084 | Página independente com `/api`, `/slow` e `/error` |
+
+**Documentação completa:** consulte a seção
+[Documentação](#documentação) para acessar arquitetura, comparação de linguagens,
+roteiro do vídeo, roadmap e licenças.
+
 Serviço **independente, escrito em Go**, que estende a observabilidade do
 **NGINX Open Source**: lê os access logs estruturados (JSON Lines), processa os
 eventos em um pipeline concorrente de goroutines e channels, calcula métricas
@@ -49,8 +77,11 @@ docker compose up --build
 
 | Serviço   | URL (somente localhost)  | Papel                                  |
 |-----------|--------------------------|----------------------------------------|
-| nginx     | http://localhost:8081    | site de demonstração + gerador de logs |
-| observer  | http://localhost:8080    | dashboard e API                        |
+| nginx 1   | http://localhost:8081    | site 1 + endpoints de demonstração     |
+| nginx 2   | http://localhost:8082    | site 2 estático + `/api`, `/slow`, `/error` |
+| nginx 3   | http://localhost:8083    | site 3 estático + `/api`, `/slow`, `/error` |
+| nginx 4   | http://localhost:8084    | site 4 estático + `/api`, `/slow`, `/error` |
+| observer  | http://localhost:8080    | dashboard, filtros e API |
 
 Endpoints de demonstração do NGINX: `/` (200), `/api/items` (200),
 `/slow` (200 em ~1 s), `/error` (500), qualquer outro caminho (404).
@@ -130,12 +161,20 @@ Todas as rotas retornam JSON válido mesmo sem nenhuma requisição registrada.
 janela** cobrem os últimos 60 s (buckets de 1 s).
 
 ## Dashboard
+Abra **http://localhost:8080/**.
 
-Abra **http://localhost:8080/**. A página (HTML/CSS/JS sem dependências,
-embutida no binário com `go:embed`) consulta a API a cada segundo e mostra
-total de requisições, req/s, taxa de erros, tempo médio, volume transferido,
-histórico dos últimos 60 s, distribuição de status, endpoints e IPs mais
-ativos, alertas e o estado do pipeline de goroutines.
+O frontend é HTML, CSS e JavaScript sem dependências, embutido no binário Go
+com `go:embed`. Ele consulta a API a cada segundo e oferece:
+
+- modo leigo e modo avançado;
+- busca por páginas, IPs e alertas;
+- filtro por porta;
+- filtro por tipo de resposta;
+- período dos últimos 60 segundos ou todo o período;
+- gráfico completo em todo o período;
+- botão para limpar os filtros;
+- lista de endpoints e alertas;
+- estado das filas e goroutines no modo avançado.
 
 ## Configuração (variáveis de ambiente)
 
@@ -162,8 +201,9 @@ ativos, alertas e o estado do pipeline de goroutines.
 | `OBSERVER_SHUTDOWN_TIMEOUT`   | `5s`                 | limite do desligamento gracioso |
 
 O `compose.yaml` define `OBSERVER_MASK_IPS=none` porque a demonstração usa
-apenas IPs fictícios. Portas podem ser trocadas com `NGINX_PORT` e
-`OBSERVER_PORT`.
+IPs fictícios. As portas dos sites podem ser trocadas pelas variáveis
+`SITE1_PORT`, `SITE2_PORT`, `SITE3_PORT`,
+`SITE4_PORT` e `OBSERVER_PORT`.
 
 ## Como executar os testes
 

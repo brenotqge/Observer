@@ -13,6 +13,7 @@ package metrics
 
 import (
 	"cmp"
+	"fmt"
 	"slices"
 	"sync"
 	"time"
@@ -50,15 +51,16 @@ type Store struct {
 	start   time.Time
 
 	// Acumuladas.
-	total     int64
-	bytes     int64
-	durSum    time.Duration
-	classes   [6]int64 // índice = status/100 (1..5)
-	byCode    map[int]int64
-	endpoints map[string]int64
-	ips       map[string]int64
-	lastEvent time.Time
-	late      int64 // eventos antigos demais para a janela
+	total      int64
+	bytes      int64
+	durSum     time.Duration
+	classes    [6]int64 // índice = status/100 (1..5)
+	byCode     map[int]int64
+	endpoints  map[string]int64
+	ips        map[string]int64
+	lastEvent  time.Time
+	late       int64 // eventos antigos demais para a janela
+	allHistory map[int64]HistoryPoint
 
 	// Janela móvel.
 	buckets     []bucket
@@ -78,15 +80,16 @@ func New(cfg Config) *Store {
 		cfg.Now = time.Now
 	}
 	return &Store{
-		now:       cfg.Now,
-		window:    int64(cfg.WindowSeconds),
-		maxKeys:   cfg.MaxKeys,
-		start:     cfg.Now(),
-		byCode:    make(map[int]int64),
-		endpoints: make(map[string]int64),
-		ips:       make(map[string]int64),
-		buckets:   make([]bucket, cfg.WindowSeconds),
-		winIPs:    make(map[string]int64),
+		now:        cfg.Now,
+		window:     int64(cfg.WindowSeconds),
+		maxKeys:    cfg.MaxKeys,
+		start:      cfg.Now(),
+		byCode:     make(map[int]int64),
+		endpoints:  make(map[string]int64),
+		ips:        make(map[string]int64),
+		buckets:    make([]bucket, cfg.WindowSeconds),
+		winIPs:     make(map[string]int64),
+		allHistory: make(map[int64]HistoryPoint),
 	}
 }
 
@@ -111,7 +114,11 @@ func (s *Store) Add(ev logparse.Event) {
 	s.durSum += ev.RequestTime
 	s.classes[ev.Status/100]++
 	s.byCode[ev.Status]++
-	boundedInc(s.endpoints, ev.Method+" "+ev.Path, s.maxKeys)
+	endpoint := ev.Method + " " + ev.Path
+	if ev.ServerPort > 0 {
+		endpoint = fmt.Sprintf("%d · %s", ev.ServerPort, endpoint)
+	}
+	boundedInc(s.endpoints, endpoint, s.maxKeys)
 	boundedInc(s.ips, ip, s.maxKeys)
 	if ev.Time.After(s.lastEvent) {
 		s.lastEvent = ev.Time
@@ -123,6 +130,15 @@ func (s *Store) Add(ev logparse.Event) {
 	if sec > nowSec { // relógio adiantado: atribui ao segundo atual
 		sec = nowSec
 	}
+	p := s.allHistory[sec]
+	p.Time = sec
+	p.Requests++
+	if ev.Status/100 == 4 {
+		p.Errors4xx++
+	} else if ev.Status/100 == 5 {
+		p.Errors5xx++
+	}
+	s.allHistory[sec] = p
 	if sec <= nowSec-s.window {
 		s.late++
 		return
@@ -231,6 +247,7 @@ type Snapshot struct {
 	Cumulative    Cumulative     `json:"cumulative"`
 	Window        Window         `json:"window"`
 	History       []HistoryPoint `json:"history"`
+	AllHistory    []HistoryPoint `json:"all_history"`
 }
 
 // Counter é um par chave/contagem para rankings.
@@ -297,6 +314,15 @@ func (s *Store) Snapshot() Snapshot {
 			p.Requests, p.Errors4xx, p.Errors5xx = b.requests, b.c4xx, b.c5xx
 		}
 		snap.History = append(snap.History, p)
+	}
+	snap.AllHistory = make([]HistoryPoint, 0, len(s.allHistory))
+	secs := make([]int64, 0, len(s.allHistory))
+	for sec := range s.allHistory {
+		secs = append(secs, sec)
+	}
+	slices.Sort(secs)
+	for _, sec := range secs {
+		snap.AllHistory = append(snap.AllHistory, s.allHistory[sec])
 	}
 	return snap
 }

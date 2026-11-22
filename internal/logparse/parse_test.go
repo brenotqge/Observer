@@ -10,7 +10,7 @@ import (
 )
 
 func TestParseValid(t *testing.T) {
-	line := `{"ts":1794347892.972,"time":"2026-11-10T21:58:12+00:00","remote_addr":"203.0.113.7","method":"GET","uri":"/slow","status":200,"bytes_sent":49408,"request_time":1.009}`
+	line := `{"ts":1794347892.972,"time":"2026-11-10T21:58:12+00:00","server_port":8082,"remote_addr":"203.0.113.7","method":"GET","uri":"/slow","status":200,"bytes_sent":49408,"request_time":1.009}`
 	ev, err := Parse([]byte(line))
 	if err != nil {
 		t.Fatalf("erro inesperado: %v", err)
@@ -19,7 +19,7 @@ func TestParseValid(t *testing.T) {
 	if !ev.Time.Equal(want) {
 		t.Errorf("Time = %v, quer %v", ev.Time, want)
 	}
-	if ev.RemoteAddr.String() != "203.0.113.7" || ev.Method != "GET" || ev.Path != "/slow" ||
+	if ev.RemoteAddr.String() != "203.0.113.7" || ev.Method != "GET" || ev.Path != "/slow" || ev.ServerPort != 8082 ||
 		ev.Status != 200 || ev.BytesSent != 49408 || ev.RequestTime != 1009*time.Millisecond {
 		t.Errorf("evento incorreto: %+v", ev)
 	}

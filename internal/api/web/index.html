@@ -17,29 +17,86 @@
 </header>
 
 <main>
+  <section class="toolbar" aria-label="Controles do dashboard">
+    <div class="mode-switch" aria-label="Modo do dashboard">
+      <button type="button" class="mode active" data-mode="beginner">Modo leigo</button>
+      <button type="button" class="mode" data-mode="advanced">Modo avançado</button>
+    </div>
+    <div class="search-group">
+      <label class="control">
+        Buscar em
+        <select id="search-scope">
+          <option value="all">Todo o painel</option>
+          <option value="pages">Páginas e portas</option>
+          <option value="ips">IPs</option>
+          <option value="alerts">Alertas</option>
+        </select>
+      </label>
+      <label class="control search-control">
+        Texto
+        <div class="search-input-wrap">
+          <input id="search" type="search" placeholder="Ex.: 8082, /api ou um IP">
+          <button id="clear-search" type="button" title="Limpar filtros" aria-label="Limpar filtros">Limpar</button>
+        </div>
+      </label>
+    </div>
+    <label class="control">
+      Porta
+      <select id="port-filter">
+        <option value="all">Todas as portas</option>
+        <option value="8081">Porta 8081 — Site 1</option>
+        <option value="8082">Porta 8082 — Site 2</option>
+        <option value="8083">Porta 8083 — Site 3</option>
+        <option value="8084">Porta 8084 — Site 4</option>
+      </select>
+    </label>
+    <label class="control">
+      Status
+      <select id="status-filter">
+        <option value="all">Todas as respostas</option>
+        <option value="2xx">Tudo deu certo (2xx)</option>
+        <option value="3xx">Teve redirecionamento (3xx)</option>
+        <option value="4xx">Página ou pedido inválido (4xx)</option>
+        <option value="5xx">Erro no site (5xx)</option>
+      </select>
+    </label>
+    <label class="control">
+      Período
+      <select id="period-filter">
+        <option value="window">Últimos 60 segundos</option>
+          <option value="cumulative">Todo o período</option>
+      </select>
+    </label>
+  </section>
+
+  <section class="card wide beginner-summary" data-beginner>
+    <h2>Como está o site?</h2>
+    <p id="simple-summary">Acompanhe abaixo uma explicação simples do que está acontecendo.</p>
+  </section>
+
   <section class="tiles" aria-label="Indicadores principais">
     <article class="tile">
-      <h2>Requisições (total)</h2>
+      <h2>Acessos (total)</h2>
       <p class="big" id="k-total">—</p>
       <p class="hint" id="k-total-hint">desde a inicialização</p>
     </article>
     <article class="tile">
-      <h2>Requisições/s</h2>
+      <h2>Acessos por segundo</h2>
       <p class="big" id="k-rps">—</p>
       <p class="hint" id="k-rps-hint">média da janela de 60 s</p>
     </article>
     <article class="tile">
-      <h2>Taxa de erros</h2>
+      <h2>Páginas com problema</h2>
       <p class="big" id="k-err">—</p>
       <p class="hint" id="k-err-hint">4xx + 5xx na janela</p>
     </article>
     <article class="tile">
-      <h2>Tempo médio de resposta</h2>
+      <h2>Tempo de espera</h2>
       <p class="big" id="k-lat">—</p>
       <p class="hint" id="k-lat-hint">janela de 60 s</p>
     </article>
     <article class="tile">
-      <h2>Dados enviados</h2>
+      <h2>Quantidade de dados</h2>
       <p class="big" id="k-bytes">—</p>
       <p class="hint">desde a inicialização</p>
     </article>
@@ -47,7 +104,7 @@
 
   <section class="card wide">
     <div class="card-head">
-      <h2>Tráfego — últimos 60 segundos</h2>
+      <h2 id="history-title">Acessos — últimos 60 segundos</h2>
       <ul class="legend" aria-label="Legenda">
         <li><span class="sw s-ok"></span>2xx/3xx</li>
         <li><span class="sw s-4xx"></span>4xx</li>
@@ -58,7 +115,7 @@
     <div class="tooltip" id="tip" hidden></div>
   </section>
 
-  <section class="card">
+  <section class="card" data-advanced>
     <h2>Status HTTP <span class="muted">(acumulado)</span></h2>
     <div id="classes" class="bars"></div>
     <table class="codes" aria-label="Contagem por código HTTP">
@@ -67,12 +124,12 @@
     </table>
   </section>
 
-  <section class="card">
+  <section class="card" data-advanced>
     <h2>Endpoints mais acessados</h2>
     <div id="endpoints" class="bars"></div>
   </section>
 
-  <section class="card">
+  <section class="card" data-advanced>
     <h2>IPs mais ativos <span class="muted" id="mask"></span></h2>
     <div id="ips" class="bars"></div>
   </section>
@@ -85,7 +142,7 @@
     <ul id="alerts" class="alerts"></ul>
   </section>
 
-  <section class="card wide pipeline">
+  <section class="card wide pipeline" data-advanced>
     <h2>Pipeline Go <span class="muted">(goroutines + channels)</span></h2>
     <dl id="pipe" class="pipe"></dl>
   </section>
